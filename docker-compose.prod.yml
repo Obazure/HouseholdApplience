@@ -1,0 +1,36 @@
+version: "3"
+services:
+  db:
+    image: mysql
+    env_file: .env
+
+  backend:
+    build:
+      context: ./backend
+    depends_on:
+      - db
+    command: python main.py
+    restart: on-failure
+    env_file: .env
+
+  frontend:
+    build:
+      context: ./frontend
+    depends_on:
+      - backend
+    command: node server.js
+    restart: on-failure
+    env_file: .env
+
+  nginx:
+    image: nginx:1.17
+    volumes:
+      - ./nginx/:/etc/nginx/conf.d/
+    ports:
+      - 80:80
+      - 443:443
+      - 10080:80
+      - 10443:443
+    depends_on:
+      - backend
+      - frontend

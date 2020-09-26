@@ -52,10 +52,6 @@ jobs:
           pip install -r requirements.txt
         working-directory: ${{env.working-directory}}
 
-      - name: Analysing the code with pycodestyle
-        run: pycodestyle `ls -R|grep .py$|xargs`
-        working-directory: ${{env.working-directory}}
-
       - name: Analysing the code with pylint
         run: pylint --extension-pkg-whitelist=pydantic `ls -R|grep .py$|xargs`
         working-directory: ${{env.working-directory}}
@@ -64,10 +60,6 @@ jobs:
           POSTGRES_PASSWORD: ${{env.POSTGRES_PASSWORD}}
           POSTGRES_DB: ${{env.POSTGRES_DB}}
           POSTGRES_HOST: ${{env.POSTGRES_HOST}}
-
-      - name: Analysing the code with pyflakes
-        run: pyflakes `ls -R|grep .py$|xargs`
-        working-directory: ${{env.working-directory}}
 
       - name: Test the code with pytest
         run: pytest test.py

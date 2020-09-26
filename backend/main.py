@@ -1,8 +1,6 @@
 from typing import List
 
-import nltk
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
-from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import NoResultFound
 import uvicorn
@@ -12,25 +10,20 @@ import crud
 import models
 import schemas
 import database
-from modules import media_providers, analysis
-from utils import generate_hash
 
 models.Base.metadata.create_all(bind=database.engine)
 
-nltk.download('punkt', download_dir=config.NLTK_DATA_PATH)
-nltk.download('stopwords', download_dir=config.NLTK_DATA_PATH)
-nltk.download('wordnet', download_dir=config.NLTK_DATA_PATH)
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(
-    title='MediaSource',
+    title='Household',
     docs_url="/api/docs",
     openapi_url="/api"
 )
-
 origins = [
-    "https//localhost",
+    "https://localhost",
     "http://localhost:3000",
-    "http://localhost:8080",
+    "http://localhost:8000",
 ]
 
 app.add_middleware(
@@ -57,41 +50,53 @@ def get_db(request: Request):
     return request.state.db
 
 
-@app.post('/api/queries/', response_model=schemas.QueryRead)
-async def make_query_request(query_input: schemas.QueryWrite, db_session: Session = Depends(get_db)):
+@app.post("/api/household/", response_model=schemas.Household)
+def create_entity(entity: schemas.HouseholdCreate, db_session: Session = Depends(get_db)):
     try:
-        db_query = crud.get(db_session, models.Query, query=query_input.query, query_hash=query_input.query_hash)
-        if not db_query:
-
-            media_provider = media_providers.MediaProviderManager(query_input.query)
-            query_processed = media_provider.process_query()
-
-            query_processed['query_hash'] = query_input.query_hash
-            for idx, article in enumerate(query_processed['articles']):
-                article['source_url_hash'] = generate_hash(article['source_url'])
-                result = analysis.simple_article_analysis(article['content'])
-                query_processed['articles'][idx]['result'] = result
-
-            db_query = crud.save_query_with_details(db_session, query_processed)
-        return db_query
+        db_entity = crud.create_entity(db_session, entity=entity)
+        if not db_entity:
+            raise HTTPException(status_code=400, detail="Something wrong, try again")
+        return db_entity
     except (HTTPException, NoResultFound, ValueError) as error:
         raise HTTPException(status_code=404, detail=error.detail) from error
 
 
-@app.get('/api/queries/', response_model=List[schemas.QueryList])
-async def get_query_details(db_session: Session = Depends(get_db)):
-    db_queries = crud.get_queries(db_session)
-    if db_queries is None:
-        raise HTTPException(status_code=404, detail="Query in history not found.")
-    return db_queries
+@app.get("/api/household/", response_model=List[schemas.Household])
+def get_entities(db_session: Session = Depends(get_db)):
+    db_entities = crud.get_entities(db_session)
+    if not db_entities:
+        raise HTTPException(status_code=400, detail="Something wrong, try again")
+    return db_entities
 
 
-@app.get('/api/queries/{id}/', response_model=schemas.Query)
-async def get_query_details(query_id: int, db_session: Session = Depends(get_db)):
-    db_query = crud.get_query_with_details(db_session, query_id)
-    if db_query is None:
-        raise HTTPException(status_code=404, detail="Query in history not found.")
-    return db_query
+@app.get("/api/household/{id}", response_model=schemas.Household)
+def get_entity(id: int, db_session: Session = Depends(get_db)):
+    db_entity = crud.get_entity(db_session, id)
+    if not db_entity:
+        raise HTTPException(status_code=400, detail="Something wrong, try again")
+    return db_entity
+
+
+@app.put("/api/household", response_model=schemas.Household)
+def edit_entity(entity: schemas.Household, db_session: Session = Depends(get_db)):
+    try:
+        db_entity = crud.edit_entity(db_session, entity)
+        if not db_entity:
+            raise HTTPException(status_code=400, detail="Something wrong, try again")
+        return db_entity
+    except (HTTPException, NoResultFound, ValueError) as error:
+        raise HTTPException(status_code=404, detail=error.detail) from error
+
+
+@app.delete("/api/household/{id}")
+def remove_entity(id: int, db_session: Session = Depends(get_db)):
+    try:
+        confirmation = crud.remove_entity(db_session, id=id)
+        if not confirmation:
+            raise HTTPException(status_code=400, detail="Email already registered")
+        return confirmation
+    except (HTTPException, NoResultFound, ValueError) as error:
+        raise HTTPException(status_code=404, detail=error.detail) from error
 
 
 if __name__ == "__main__":

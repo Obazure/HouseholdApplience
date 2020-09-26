@@ -7,18 +7,6 @@ const app = express()
 const docsRouter = Router()
 
 app.use(express.static(path.join(__dirname, 'build')))
-app.use(express.static(path.join(__dirname, 'docs')))
-
-docsRouter.get('*', async (req, res, next) => {
-    const fileUrlPath = req.path.toString().substring(1).split("/")
-    const filePath = path.join.apply(null, [__dirname, "docs", ...fileUrlPath])
-    if (fs.existsSync(filePath)) {
-        res.sendFile(filePath)
-    } else {
-        next()
-    }
-})
-app.use('/docs', docsRouter)
 
 app.get('*', function (req, res, next) {
         res.sendFile(path.join(__dirname, 'build', 'index.html'))

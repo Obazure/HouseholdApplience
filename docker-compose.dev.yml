@@ -11,6 +11,8 @@ services:
       context: ./backend
     depends_on:
       - db
+    volumes:
+      - ./backend:/app
     command: python main.py
     restart: on-failure
     env_file: .env
@@ -22,7 +24,9 @@ services:
       context: ./frontend
     depends_on:
       - backend
-    command: node server.js
+    volumes:
+      - ./frontend:/app
+    command: npm run start-dev
     restart: on-failure
     env_file: .env
     ports:
@@ -31,9 +35,12 @@ services:
   nginx:
     image: nginx:1.17
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./nginx/:/etc/nginx/conf.d/
     ports:
       - 80:80
+      - 443:443
+      - 10080:80
+      - 10443:443
     depends_on:
       - backend
       - frontend

@@ -2,7 +2,6 @@
 *.env
 
 backend/env/
-backend/lib/nltk_data
 *.pytest_cache*
 *__pycache__*
 
