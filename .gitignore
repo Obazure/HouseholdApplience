@@ -1,0 +1,11 @@
+.idea/
+*.env
+
+backend/env/
+backend/lib/nltk_data
+*.pytest_cache*
+*__pycache__*
+
+frontend/node_modules/
+frontend/build/
+frontend/package-lock.json

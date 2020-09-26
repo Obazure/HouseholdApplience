@@ -1,0 +1,79 @@
+#------------------------------------------------------------
+# CI for backend
+#------------------------------------------------------------
+
+name: Pizza-Backend-CI
+
+on:
+  push:
+    branches:
+      - 'backend/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      working-directory: ./backend
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ci_backend_db_test
+      POSTGRES_HOST: localhost
+
+    services:
+      postgres:
+        image: postgres:11
+        env:
+          POSTGRES_USER: ${{env.POSTGRES_USER}}
+          POSTGRES_PASSWORD: ${{env.POSTGRES_PASSWORD}}
+          POSTGRES_DB: ${{env.POSTGRES_DB}}
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+
+      - uses: actions/cache@v2
+        id: pip-cache
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+        working-directory: ${{env.working-directory}}
+
+      - name: Analysing the code with pycodestyle
+        run: pycodestyle `ls -R|grep .py$|xargs`
+        working-directory: ${{env.working-directory}}
+
+      - name: Analysing the code with pylint
+        run: pylint --extension-pkg-whitelist=pydantic `ls -R|grep .py$|xargs`
+        working-directory: ${{env.working-directory}}
+        env:
+          POSTGRES_USER: ${{env.POSTGRES_USER}}
+          POSTGRES_PASSWORD: ${{env.POSTGRES_PASSWORD}}
+          POSTGRES_DB: ${{env.POSTGRES_DB}}
+          POSTGRES_HOST: ${{env.POSTGRES_HOST}}
+
+      - name: Analysing the code with pyflakes
+        run: pyflakes `ls -R|grep .py$|xargs`
+        working-directory: ${{env.working-directory}}
+
+      - name: Test the code with pytest
+        run: pytest test.py
+        working-directory: ${{env.working-directory}}
+        env:
+          POSTGRES_USER: ${{env.POSTGRES_USER}}
+          POSTGRES_PASSWORD: ${{env.POSTGRES_PASSWORD}}
+          POSTGRES_DB: ${{env.POSTGRES_DB}}
+          POSTGRES_HOST: ${{env.POSTGRES_HOST}}

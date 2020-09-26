@@ -1,0 +1,33 @@
+#------------------------------------------------------------
+# CI for frontend
+#------------------------------------------------------------
+
+name: Pizza-Frontend-CI
+
+on:
+  push:
+    branches:
+      - 'frontend/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      working-directory: ./frontend
+
+    strategy:
+      matrix:
+        node-version: [ 10.x, 12.x, 14.x ]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Test with ${{ matrix.node-version }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: npm i
+        working-directory: ${{env.working-directory}}
+      - run: npm run lint
+        working-directory: ${{env.working-directory}}
+      - run: npm run build
+        working-directory: ${{env.working-directory}}
